@@ -4,9 +4,6 @@ const path = require('path');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const { log } = require('console');
-const { waitForDebugger } = require('inspector');
-
 
 app.use(cors({
     origin: 'https://omegle-rose.vercel.app',
@@ -17,101 +14,78 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: 'https://omegle-rose.vercel.app', 
+        origin: 'https://omegle-rose.vercel.app',
         methods: ['GET', 'POST'],
         credentials: true
     },
     transports: ['websocket', 'polling']
 });
 
-
 let waitingusers = [];
-let rooms = {};
-
+// let rooms = {}; // Uncomment if you plan to use this later
 
 io.on("connection", function(socket) {
-     socket.on("joinroom", function(){
-       //idharr waiting user ka logic aayega matlab agar waiting user me zero se jyada  hai matalab koi to hai nahi to koin nahi matlab zero hai to hum khudko daal dege matlab socket ko push kardenege
-       if(waitingusers.length > 0){
-   //idhar shift user karke waiting users se partner mai daal denge to hume partner mil jayega jisse hamri batchit hogi
-      let partner = waitingusers.shift();
-      const roomname = `${socket.id}-${partner.id}`;
+    console.log(`New client connected: ${socket.id}`);
+    
+    socket.on("joinroom", function() {
+        if (waitingusers.length > 0) {
+            // Get the waiting partner and create a unique room name.
+            let partner = waitingusers.shift();
+            const roomname = `${socket.id}-${partner.id}`;
 
-      socket.join(roomname);
-      partner.join(roomname);
+            socket.join(roomname);
+            partner.join(roomname);
 
-
-      io.to(roomname).emit("joined" , roomname);
-
-
-       }
-       else{
-        waitingusers.push(socket)
-       }
-     });
-
-
-     socket.on('startVideoCall', (data) => {
-      const { room } = data;
-      console.log(`startVideoCall event from ${socket.id} for room ${room}`);
-      // Send an incoming call event to everyone in the room except the sender.
-      socket.to(room).emit('incomingCall');
+            // Notify both clients that they have joined the room.
+            io.to(roomname).emit("joined", roomname);
+        } else {
+            waitingusers.push(socket);
+        }
     });
-  
-    // When the callee accepts the call.
+
+    socket.on('startVideoCall', (data) => {
+        const { room } = data;
+        console.log(`startVideoCall event from ${socket.id} for room ${room}`);
+        // Send an incoming call event to everyone in the room except the sender.
+        socket.to(room).emit('incomingCall');
+    });
+
     socket.on('acceptCall', (data) => {
-      const { room } = data;
-      console.log(`acceptCall event from ${socket.id} for room ${room}`);
-      // Notify the other participant in the room that the call was accepted.
-      socket.to(room).emit('callAccepted');
+        const { room } = data;
+        console.log(`acceptCall event from ${socket.id} for room ${room}`);
+        // Notify the other participant in the room that the call was accepted.
+        socket.to(room).emit('callAccepted');
     });
-  
-    // When the callee rejects the call.
+
     socket.on('rejectCall', (data) => {
-      const { room } = data;
-      console.log(`rejectCall event from ${socket.id} for room ${room}`);
-      // Notify the other participant that the call was rejected.
-      socket.to(room).emit('callRejected');
+        const { room } = data;
+        console.log(`rejectCall event from ${socket.id} for room ${room}`);
+        // Notify the other participant that the call was rejected.
+        socket.to(room).emit('callRejected');
     });
            
-     socket.on("disconnect" , function(){
-        let index =  waitingusers.findIndex(
-            (waitingUser) => waitingUser.id === socket.id
-          );
-    
-          if(index !== -1) {
-            waitingusers.splice(index , 1);
-          }
-    });
-
     socket.on("typing", ({ room }) => {
         socket.to(room).emit("userTyping");
     });
   
-   
-      socket.on("startVideoCall", ({ room }) => {
-      socket.broadcast.to(room).emit("incomingCall");
-
-      socket.on("acceptCall", ({ room }) => {
-        socket.broadcast.to(room).emit("callAccepted")
-    });
-
-    socket.on("rejectCall", ({ room }) => {
-      socket.to(room).emit("callRejected");
+    socket.on("disconnect", function() {
+        let index = waitingusers.findIndex(
+            (waitingUser) => waitingUser.id === socket.id
+        );
+    
+        if (index !== -1) {
+            waitingusers.splice(index, 1);
+        }
+        console.log(`Client disconnected: ${socket.id}`);
     });
 });
-
-});
-    
-
-    
-
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
