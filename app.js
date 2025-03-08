@@ -78,20 +78,28 @@ io.on("connection", function(socket) {
     });
   
    
-      socket.on("startVideoCall", ({ room }) => {
-      socket.broadcast.to(room).emit("incomingCall");
-
-      s// Server-side: When callee accepts the call
-// Server-side: When callee accepts the call
-socket.on('acceptCall', (data) => {
-    const { room } = data;
-    console.log(`acceptCall from ${socket.id} for room ${room}`);
-    // Emit to everyone in the room except the callee (i.e. the caller)
-    socket.to(room).emit('callAccepted');
-  });
+    socket.on("startVideoCall", ({ room }) => {
+        // Notify the other participant that an incoming call is starting.
+        socket.broadcast.to(room).emit("incomingCall");
+      });
+    
+      // When a user accepts the call, notify the other participant.
+      socket.on("acceptCall", (data) => {
+        const { room } = data;
+        console.log(`acceptCall from ${socket.id} for room ${room}`);
+        // Emit to everyone in the room except the sender.
+        socket.to(room).emit("callAccepted");
+      });
+    
+      // When a user rejects the call, notify the other participant.
+      socket.on("rejectCall", (data) => {
+        const { room } = data;
+        console.log(`rejectCall from ${socket.id} for room ${room}`);
+        socket.to(room).emit("callRejected");
+      });
   
     });
-});
+
 
 
     
