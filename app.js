@@ -6,7 +6,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 app.use(cors({
-    origin: 'https://omegle-rose.vercel.app',
+    origin: 'https://omegle-rose.vercel.app/',
     methods: ['GET', 'POST'],
     credentials: true
 }));
@@ -14,7 +14,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: 'https://omegle-rose.vercel.app',
+        origin: 'https://omegle-rose.vercel.app/',
         methods: ['GET', 'POST'],
         credentials: true
     },
