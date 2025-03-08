@@ -81,12 +81,19 @@ io.on("connection", function(socket) {
       socket.on("startVideoCall", ({ room }) => {
       socket.broadcast.to(room).emit("incomingCall");
 
-      socket.on("acceptCall", ({ room }) => {
-        socket.broadcast.to(room).emit("callAccepted")
+      s// Server-side: When callee accepts the call
+// Server-side: When callee accepts the call
+socket.on('acceptCall', (data) => {
+    const { room } = data;
+    console.log(`acceptCall from ${socket.id} for room ${room}`);
+    // Emit to everyone in the room except the callee (i.e. the caller)
+    socket.to(room).emit('callAccepted');
+  });
+  
     });
 });
 
-});
+
     
 
     
